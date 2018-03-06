@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: test
+  namespace: vinay-test
+  selfLink: /oapi/v1/namespaces/vinay-test/deploymentconfigs/test
+  uid: 96749b63-2117-11e8-8e61-005056bd116f
+  resourceVersion: '139469235'
+  generation: 8
+  creationTimestamp: '2018-03-06T08:23:02Z'
+  labels:
+    app: test
+  annotations:
+    openshift.io/generated-by: OpenShiftWebConsole
+spec:
+  strategy:
+    type: Rolling
+    rollingParams:
+      updatePeriodSeconds: 1
+      intervalSeconds: 1
+      timeoutSeconds: 600
+      maxUnavailable: 25%
+      maxSurge: 25%
+    resources: {}
+    activeDeadlineSeconds: 21600
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - test
+        from:
+          kind: ImageStreamTag
+          namespace: vinay-test
+          name: 'test:1'
+        lastTriggeredImage: >-
+          172.30.28.61:5000/vinay-test/test@sha256:89d4ea24883c451c4634fe9d67cf6ae995768486a4d33ce6af22be3a87ad535a
+  replicas: 1
+  test: false
+  selector:
+    app: test
+    deploymentconfig: test
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: test
+        deploymentconfig: test
+      annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+    spec:
+      volumes:
+        - name: httpdlog-claim
+          persistentVolumeClaim:
+            claimName: httpdlog-claim
+      containers:
+        - name: test
+          image: >-
+            172.30.28.61:5000/vinay-test/test@sha256:89d4ea24883c451c4634fe9d67cf6ae995768486a4d33ce6af22be3a87ad535a
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+          env:
+            - name: TIMEZONE
+              value: America/Chicago
+            - name: SYMFONY__DATABASE__HOST
+              value: db
+          resources: {}
+          volumeMounts:
+            - name: httpdlog-claim
+              mountPath: /mnt
+          terminationMessagePath: /dev/termination-log
+          imagePullPolicy: Always
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext:
+        supplementalGroups:
+          - 123456
+status:
+  latestVersion: 4
+  observedGeneration: 8
+  replicas: 1
+  updatedReplicas: 1
+  availableReplicas: 1
+  unavailableReplicas: 0
+  details:
+    message: config change
+    causes:
+      - type: ConfigChange
+  conditions:
+    - type: Available
+      status: 'True'
+      lastUpdateTime: '2018-03-06T08:23:53Z'
+      lastTransitionTime: '2018-03-06T08:23:53Z'
+      message: Deployment config has minimum availability.
+    - type: Progressing
+      status: 'True'
+      lastUpdateTime: '2018-03-06T10:42:27Z'
+      lastTransitionTime: '2018-03-06T10:42:25Z'
+      reason: NewReplicationControllerAvailable
+      message: replication controller "test-4" successfully rolled out
+  readyReplicas: 1
