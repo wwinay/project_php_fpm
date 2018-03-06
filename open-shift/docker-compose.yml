@@ -1,0 +1,117 @@
+---
+
+version: '3'
+
+services:
+  fpm:
+    build: ./provisioning/php56-fpm/widget
+    image: widget_fpm
+    restart: always
+    networks:
+      - default
+    environment:
+      TIMEZONE: America/Chicago
+      SYMFONY__DATABASE__HOST: db
+      SYMFONY__DATABASE__PORT: 5432
+      SYMFONY__DATABASE__NAME: widget
+      SYMFONY__DATABASE__USER: widget
+      SYMFONY__DATABASE__PASSWORD: widget
+      SYMFONY__DATABASE__SCHEMA: widget
+      SYMFONY_ENV: dev
+      SYMFONY__ELASTICSEARCH__HOST: es:9200
+    volumes:
+      - ./provisioning/var/logs/fpm:/usr/local/var/log
+      - ./:/var/www/html
+      - ./:/usr/local/apache2/htdocs
+    ports:
+      # FPM Port to check status
+      - "9002:9000"
+  webserver:
+    build: ./provisioning/webserver/apache
+    image: widget_web
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./provisioning/var/logs/apache:/usr/local/apache2/logs
+      - ./:/usr/local/apache2/htdocs
+    links:
+      - db
+    networks:
+      - default
+    labels:
+      com.singlehop.description: "Widget Service"
+  db:
+    build: ./provisioning/database/postgres
+    image: widget_postgres
+    ports:
+          - "5432:5432"
+    restart: always
+    volumes:
+      - ./provisioning/var/data/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: widget
+      POSTGRES_PASSWORD: widget
+    networks:
+      - default
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    labels:
+      com.singlehop.description: "Widget Database Admin"
+  es:
+    image: elasticsearch:5.6
+    restart: always
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./provisioning/var/data/elasticsearch:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    networks:
+      - default
+    labels:
+      com.singlehop.description: "Generic Elasticsearch5 DB"
+  composer:
+    image: widget_fpm
+    #TODO Switch to Environment file: env_file
+    environment:
+      TIMEZONE: America/Chicago
+      COMPOSER_ALLOW_SUPERUSER: 1
+      SYMFONY__DATABASE__HOST: db
+      SYMFONY__DATABASE__PORT: 5432
+      SYMFONY__DATABASE__NAME: widget
+      SYMFONY__DATABASE__USER: widget
+      SYMFONY__DATABASE__PASSWORD: widget
+      SYMFONY__DATABASE__SCHEMA: widget
+      SYMFONY_ENV: dev
+      SYMFONY__ELASTICSEARCH__HOST: es:9200
+    entrypoint: provisioning/php_composer/widget_composer_call.sh
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - fpm
+    labels:
+      com.singlehop.description: "Widget Automated PHP Composer Call"
+  migration:
+    image: widget_fpm
+    environment:
+      TIMEZONE: America/Chicago
+    entrypoint: php app/console doctrine:migrations:migrate
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - db
+      - fpm
+      - composer
+    labels:
+      com.singlehop.description: "Widget Automated Symfony Migration"

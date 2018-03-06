@@ -1,0 +1,14 @@
+## ~/.ssh/config
+Host github.com
+  User git
+  IdentityFile ~/.ssh/id_rsa_rbac-connect-bundle
+
+Host rbac-connect.github.com
+  Hostname github.com
+  User git
+  IdentityFile ~/.ssh/id_rsa_rbac-connect-bundle
+
+Host rest-util.github.com
+  Hostname github.com
+  User git
+  IdentityFile ~/.ssh/id_rsa_rest-util-bundle
